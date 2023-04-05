@@ -286,8 +286,12 @@
   (.isVisible (-query q)))
 
 (defn in-viewport?
-  "Check that element is in viewport."
+  "Check that element is in viewport.
+
+  See https://playwright.dev/java/docs/api/class-locatorassertions#locator-assertions-to-be-in-viewport."
   [q]
+  ;; `.isInViewport` returns `nil` if successful or
+  ;; explodes if unsuccessful.
   (-> (-query q)
       PlaywrightAssertions/assertThat
       .isInViewport)
