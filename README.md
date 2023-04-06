@@ -1,6 +1,7 @@
 # Wally Tests
 
-This repo contains some tests we are doing in the wild.
+This repo contains some tests we are doing in the wild using
+[Wally](https://github.com/pfeodrippe/wally).
 
 ## Book of Clerk
 
