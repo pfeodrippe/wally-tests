@@ -7,6 +7,7 @@
 
 (defn headless-mode
   [f]
+  ;; If you want to run things in headed mode, set headless to `false`.
   (w/with-page (w/make-page {:headless true})
     (f)))
 
@@ -39,7 +40,3 @@
   ;; This should fail now as the page scrolled until the Recursion section.
   ;; (w/in-viewport? (s/h3 (ws/text "🤹🏻 Applying Viewers")))
   )
-
-;; TODO
-;; - [x] Check what's shown in the screen when clicking on some ToC header
-;; - [ ] Make it run in the CI
