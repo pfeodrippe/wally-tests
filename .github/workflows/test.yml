@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v3
+
+      - uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: '1.11.1.1189'
+
+      - name: Cache maven
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: m2-${{ hashFiles('deps.edn') }}
+          restore-keys: |
+            m2-
+
+      - name: Test
+        run: |
+          clojure -M:test

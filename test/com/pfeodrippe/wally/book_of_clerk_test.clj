@@ -1,10 +1,18 @@
-(ns com.pfeodrippe.wally.book-of-clerk
+(ns com.pfeodrippe.wally.book-of-clerk-test
   (:require
+   [clojure.test :refer [deftest testing is use-fixtures]]
+   [garden.selectors :as s]
    [wally.main :as w]
-   [wally.selectors :as ws]
-   [garden.selectors :as s]))
+   [wally.selectors :as ws]))
 
-(comment
+(defn headless-mode
+  [f]
+  (w/with-page (w/make-page {:headless true})
+    (f)))
+
+(use-fixtures :once headless-mode)
+
+(deftest book-of-clerk
 
   ;; Navigate to a page.
   (w/navigate "https://github.clerk.garden/nextjournal/book-of-clerk")
@@ -23,17 +31,14 @@
   ;; After clicking above, we want to make sure that the right content is being
   ;; displayed in the browser viewport (which it's what the user sees while
   ;; scrolling through the page).
-  (w/in-viewport? (s/h3 (ws/text "🤹🏻 Applying Viewers")))
+  (is (w/in-viewport? (s/h3 (ws/text "🤹🏻 Applying Viewers"))))
 
   (w/click (s/a (s/attr= :href "#recursion")))
-  (w/in-viewport? (s/h4 (ws/text "🐢 Recursion")))
+  (is (w/in-viewport? (s/h4 (ws/text "🐢 Recursion"))))
 
   ;; This should fail now as the page scrolled until the Recursion section.
   ;; (w/in-viewport? (s/h3 (ws/text "🤹🏻 Applying Viewers")))
-
-  ()
-
-  ())
+  )
 
 ;; TODO
 ;; - [x] Check what's shown in the screen when clicking on some ToC header

@@ -1,4 +1,14 @@
-{:deps
+{:aliases
+ {:dev {:extra-deps {nubank/matcher-combinators {:mvn/version "3.1.4"}
+                     lambdaisland/kaocha {:mvn/version "1.0-612"}}
+        :extra-paths ["test"]}
+
+  :test {:extra-deps {nubank/matcher-combinators {:mvn/version "3.1.4"}
+                      lambdaisland/kaocha {:mvn/version "1.0-612"}}
+         :extra-paths ["test"]
+         :main-opts   ["-m" "kaocha.runner"]}}
+
+ :deps
  {com.microsoft.playwright/playwright {:mvn/version "1.32.0"}
   io.github.pfeodrippe/wally {:mvn/version "0.0.2"}}
 
