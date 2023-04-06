@@ -29,23 +29,30 @@
   "Folder for the browser."
   (io/file ".wally/webdriver/data"))
 
+(defn make-page
+  ([]
+   (make-page {}))
+  ([{:keys [headless]
+     :or {headless false}}]
+   (delay
+     (let [pw (Playwright/create)]
+       (io/make-parents user-data-dir)
+       (doto (-> (.. pw chromium (launchPersistentContext
+                                  ;; We start chromium with persistent data
+                                  ;; so we can login to Google (e.g. for QA develop
+                                  ;; admin) only once during days.
+                                  (Paths/get (java.net.URI.
+                                              (str "file://"
+                                                   (.getAbsolutePath user-data-dir))))
+                                  (-> (BrowserType$LaunchPersistentContextOptions.)
+                                      (.setHeadless headless)
+                                      (.setSlowMo 50))))
+                 .pages
+                 first)
+         (.setDefaultTimeout 10000))))))
+
 (defonce ^:dynamic *page*
-  (delay
-    (let [pw (Playwright/create)]
-      (io/make-parents user-data-dir)
-      (doto (-> (.. pw chromium (launchPersistentContext
-                                 ;; We start chromium with persistent data
-                                 ;; so we can login to Google (e.g. for QA develop
-                                 ;; admin) only once during days.
-                                 (Paths/get (java.net.URI.
-                                             (str "file://"
-                                                  (.getAbsolutePath user-data-dir))))
-                                 (-> (BrowserType$LaunchPersistentContextOptions.)
-                                     (.setHeadless false)
-                                     (.setSlowMo 50))))
-                .pages
-                first)
-        (.setDefaultTimeout 10000)))))
+  (make-page))
 
 (def ^:dynamic *opts*
   {::opt.command-delay 0})
