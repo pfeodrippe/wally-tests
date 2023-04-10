@@ -1,5 +1,6 @@
-(ns com.pfeodrippe.wally.webdriver
+(ns com.pfeodrippe.wally.timer
   (:require
+   [clojure.java.io :as io]
    [clojure.string :as str]
    [clojure.test :refer [deftest testing is use-fixtures]]
    [garden.selectors :as s]
@@ -10,38 +11,38 @@
    [wally.main :as w]
    [wally.selectors :as ws]))
 
-(def global
+#_(def global
   {::playing? false
    ::time 0})
 
-(r/defproc play
+#_(r/defproc play
   (fn [{::keys [playing?] :as db}]
     (when (not playing?)
       (assoc db ::playing? true))))
 
-(r/defproc pause
+#_(r/defproc pause
   (fn [{::keys [playing?] :as db}]
     (when playing?
       (assoc db ::playing? false))))
 
-(r/defproc tick
+#_(r/defproc tick
   (fn [{::keys [playing?] :as db}]
     (when playing?
       (update db ::time inc))))
 
 ;; We add a constraint so ◊code{time} does not evolve forever.
-(rh/defconstraint time-constraint
+#_(rh/defconstraint time-constraint
   [{::keys [time]}]
   (< time 10))
 
-(comment
+#_(comment
 
   @(r/run-model global #{play pause tick time-constraint} {:trace-example true})
   (r/random-traces-from-result (r/get-result) {:max-number-of-traces 1
                                                :max-number-of-states 10})
 
   (let [init (fn  [_]
-               (w/navigate "file:///Users/paulo.feodrippe/dev/wally-tests/audioplayer.html"))
+               (w/navigate (str (io/resource "audioplayer.html"))))
 
         procs-mapping {::play
                        (fn [_]
@@ -62,13 +63,13 @@
                             (is (= "Play" (w/text-content :play-pause)))))
 
                         ::time
-                        {:assertion
+                        {:check
                          (fn [previous-db db]
-                           (if-let [previous-time (-> previous-db :_impl ::time)]
-                             (<= previous-time (-> db :_impl ::time))
+                           (if-let [previous-time (-> previous-db :-impl ::time)]
+                             (is (<= previous-time (-> db :-impl ::time)))
                              true))
 
-                         :save
+                         :snapshot
                          (fn [_]
                            (let [[minutes seconds] (->> (-> (w/text-content :time-display)
                                                             (str/split #":"))
@@ -85,14 +86,14 @@
   ())
 
 ;; TODO:
-;; - [ ] Create spec as in https://docs.quickstrom.io/en/latest/tutorials/first.html
-;;   - [x] Play
-;;   - [x] Pause
-;;   - [ ] Tick
-;;     - [ ] We may need something to tell us about old state (in the implemenation)
-;;           so we can use invariants
 ;; - [ ] Wait on event
+;; - [ ] Timer
+;;   - https://github.com/quickstrom/quickstrom/blob/main/case-studies/timer.strom#L36
+;;   - [ ] Always/eventually
 ;; - [ ] Could we run it from TLC?
+;; - [ ] Show the trace and steps that will be run
+;; - [ ] Support other workloads (https://github.com/jepsen-io/maelstrom/blob/main/doc/workloads.md)
+
 
 ;; From https://arxiv.org/pdf/2203.11532.pdf.
 ;; -------------------------------------------------

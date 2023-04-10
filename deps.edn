@@ -13,4 +13,4 @@
   io.github.pfeodrippe/wally {:mvn/version "0.0.3"}
   pfeodrippe/recife {:mvn/version "0.13.0"}}
 
- :paths ["src"]}
+ :paths ["src" "resources"]}

@@ -26,29 +26,30 @@
 (def ^:private original-report
   report)
 
-(defn check-state
-  [previous-state state states-mapping]
-  (->> states-mapping
-       (mapv (fn [[k {:keys [assertion save]}]]
-               [k (if (contains? state k)
-                    (let [*test-info (atom [])]
-                      (with-redefs [report (fn [event]
-                                             (swap! *test-info conj
-                                                    {:event event
-                                                     :testing-contexts
-                                                     (vec (reverse clojure.test/*testing-contexts*))})
-                                             (original-report event))]
-                        (testing k
-                          (def fgg assertion)
-                          (let [result (assertion previous-state state)]
-                            (if result
-                              {:result result
-                               :impl-state (save state)}
-                              {:result result
-                               :test-info @*test-info})))))
-                    {:result true})]))
-       (remove (comp :result second))
-       (into {})))
+(defn handle-states
+  [history state states-mapping]
+  (let [previous-state (last (last history))]
+    (->> states-mapping
+         (mapv (fn [[k {:keys [check snapshot]}]]
+                 [k (if (contains? state k)
+                      (let [*test-info (atom [])]
+                        (with-redefs [report (fn [event]
+                                               (swap! *test-info conj
+                                                      {:event event
+                                                       :testing-contexts
+                                                       (vec (reverse clojure.test/*testing-contexts*))})
+                                               (original-report event))]
+                          (testing k
+                            (let [impl-state (snapshot state)
+                                  result (check previous-state (assoc-in state [:-impl k] impl-state))]
+                              (if result
+                                {:result result
+                                 :impl-state impl-state}
+                                {:result result
+                                 :impl-state impl-state
+                                 :test-info @*test-info})))))
+                      {:result true})]))
+         (into {}))))
 
 (defn analyze-trace
   [trace {:keys [init procs-mapping states-mapping]}]
@@ -56,30 +57,38 @@
         _ (init initial-global-state)]
     (loop [[[idx {:keys [recife/metadata] :as state}] & next-states] trace
            history []]
-      (when idx
-        (if metadata
-          (let [previous-state (last (last history))
-                {:keys [context]} metadata
-                step (first context)
-                step-fn (procs-mapping step)]
-            (when-not step-fn
-              (throw (ex-info "Handler not implemented for step" {:step step})))
-            (step-fn context)
-            (let [errors (check-state previous-state state states-mapping)]
-              (if (seq errors)
-                {:type :violation
-                 :step step
-                 :errors errors
-                 :trace history}
-                (recur next-states (conj history [idx state])))))
+      (if (nil? idx)
+        {:trace history}
+        (let [check (fn check
+                      [violation step]
+                      (let [states (handle-states history state states-mapping)
+                            errors (->> states
+                                        (remove (comp :result second))
+                                        (into {}))]
+                        (if (seq errors)
+                          {:type violation
+                           :step step
+                           :errors errors
+                           :trace history}
+                          {:history (conj history [idx (assoc state :-impl
+                                                              (update-vals states :impl-state))])})))]
+          (if metadata
+            (let [{:keys [context]} metadata
+                  step (first context)
+                  step-fn (procs-mapping step)]
+              (when-not step-fn
+                (throw (ex-info "Handler not implemented for step" {:step step})))
+              (step-fn context)
+              (let [res (check :violation step)]
+                (if (:errors res)
+                  res
+                  (recur next-states (:history res)))))
 
-          ;; Initial state.
-          (let [errors (check-state nil state states-mapping)]
-            (if (seq errors)
-              {:type :initial-state-violation
-               :errors errors
-               :trace (conj history [idx state])}
-              (recur next-states (conj history [idx state])))))))))
+            ;; Initial state.
+            (let [res (check :initial-state-violation nil)]
+              (if (:errors res)
+                res
+                (recur next-states (:history res))))))))))
 
 #_{:clj-kondo/ignore [:unused-binding]}
 (defn analyze
@@ -93,24 +102,25 @@
                        ;; Adapt states mapping.
                        (fn [states-mapping]
                          (->> states-mapping
-                              (m/map-vals (fn [{:keys [assertion save]
-                                                :or {assertion (constantly true)
-                                                     save identity}
+                              (m/map-vals (fn [{:keys [check snapshot]
+                                                :or {check (constantly true)
+                                                     snapshot (constantly nil)}
                                                 :as v}]
                                             (if (fn? v)
-                                              {:assertion v
-                                               :save identity}
-                                              {:assertion assertion
-                                               :save identity}))))))]
+                                              {:check v
+                                               :snapshot snapshot}
+                                              {:check check
+                                               :snapshot snapshot}))))))]
     (loop [[trace & other-traces] (-> result
                                       r/states-from-result
                                       (r/random-traces-from-states
                                        {:max-number-of-traces max-number-of-traces
                                         :max-number-of-states max-number-of-states}))
-           trace-counter 0]
+           trace-counter 0
+           info []]
       (if trace
         (let [result (analyze-trace trace params)]
           (if (:errors result)
             result
-            (recur other-traces (inc trace-counter))))
-        {:ok :ok}))))
+            (recur other-traces (inc trace-counter) (conj info result))))
+        {:info info}))))
