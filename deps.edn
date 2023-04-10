@@ -10,6 +10,7 @@
 
  :deps
  {com.microsoft.playwright/playwright {:mvn/version "1.32.0"}
-  io.github.pfeodrippe/wally {:mvn/version "0.0.3"}}
+  io.github.pfeodrippe/wally {:mvn/version "0.0.3"}
+  pfeodrippe/recife {:mvn/version "0.13.0"}}
 
  :paths ["src"]}
