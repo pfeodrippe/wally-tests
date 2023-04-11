@@ -1,27 +1,9 @@
 (ns recife.webdriver
   "Functions to help you webdrive a browser using Recife."
   (:require
-   [clojure.test :refer [is testing report]]
+   [clojure.test :refer [testing report]]
    [medley.core :as m]
    [recife.core :as r]))
-
-(comment
-
-  (do
-    (def result (r/get-result))
-    (def max-number-of-traces 20)
-
-    (def trace
-      (-> result
-          r/states-from-result
-          (r/random-traces-from-states
-           {:max-number-of-traces max-number-of-traces
-            :max-number-of-states 10})
-          first))
-
-    (def initial-global-state {}))
-
-  ())
 
 (def ^:private original-report
   report)
@@ -51,7 +33,7 @@
                       {:result true})]))
          (into {}))))
 
-(defn analyze-trace
+(defn drive-trace
   [trace {:keys [init procs-mapping states-mapping]}]
   (let [initial-global-state (dissoc (get-in trace [0 1]) ::r/procs)
         _ (init initial-global-state)]
@@ -91,8 +73,11 @@
                 (recur next-states (:history res))))))))))
 
 #_{:clj-kondo/ignore [:unused-binding]}
-(defn analyze
-  "`max-number-of-states` drives how "
+(defn drive
+  "Drive a browser using Recife's result. It returns a map with `:errors` or
+  the traces if successful.
+
+  `max-number-of-states` is per trace."
   [result {:keys [init procs states max-number-of-traces max-number-of-states]
            :or {max-number-of-traces 10
                 max-number-of-states 10}
@@ -119,7 +104,7 @@
            trace-counter 0
            info []]
       (if trace
-        (let [result (analyze-trace trace params)]
+        (let [result (drive-trace trace params)]
           (if (:errors result)
             result
             (recur other-traces (inc trace-counter) (conj info result))))

@@ -2,14 +2,11 @@
   (:require
    [clojure.java.io :as io]
    [clojure.string :as str]
-   [clojure.test :refer [deftest testing is use-fixtures]]
-   [garden.selectors :as s]
-   [recife.analyzer :as ra]
+   [clojure.test :refer [is]]
    [recife.core :as r]
    [recife.helpers :as rh]
    [recife.webdriver :as rw]
-   [wally.main :as w]
-   [wally.selectors :as ws]))
+   [wally.main :as w]))
 
 (def global
   {::playing? false
@@ -76,12 +73,12 @@
                                                         (mapv #(Integer/parseInt %)))]
                              (+ (* 60 minutes) seconds)))}}]
 
-    (rw/analyze (r/get-result)
-                {:init init
-                 :procs-mapping procs-mapping
-                 :states-mapping states-mapping
-                 :max-number-of-traces 1
-                 :max-number-of-states 10}))
+    (rw/drive (r/get-result)
+              {:init init
+               :procs-mapping procs-mapping
+               :states-mapping states-mapping
+               :max-number-of-traces 1
+               :max-number-of-states 10}))
 
   ())
 
