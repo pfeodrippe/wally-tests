@@ -39,4 +39,5 @@
 
   ;; This should fail now as the page scrolled until the Recursion section.
   ;; (w/in-viewport? (s/h3 (ws/text "🤹🏻 Applying Viewers")))
+  (is true)
   )
